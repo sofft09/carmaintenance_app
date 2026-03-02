@@ -1,0 +1,383 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=yes">
+    <title>maintenanc_car - متابعة صيانة السيارة</title>
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <!-- jsPDF -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <!-- ربط ملف CSS الخارجي -->
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="notification" id="notification"></div>
+    
+    <!-- نافذة عرض الصور (Modal) -->
+    <div id="imageModal" class="modal" onclick="closeModal()">
+        <span class="close-modal">&times;</span>
+        <img class="modal-content" id="modalImage">
+    </div>
+
+    <div class="container">
+        <!-- الهيدر -->
+        <div class="header">
+            <div class="logo">
+                <i class="fas fa-car"></i>
+                <h1>maintenanc_car</h1>
+            </div>
+        </div>
+
+        <!-- صفحة تسجيل الدخول مع خلفية -->
+<div id="page-login" class="page active">
+    <div class="login-background" style="background-image: url('CAR.jfif');">
+        <div class="login-overlay">
+            <div class="login-box">
+                <h2>تسجيل الدخول</h2>
+                <div class="form-group">
+                    <label>اسم المستخدم</label>
+                    <input type="text" id="loginUsername" value="admin">
+                </div>
+                <div class="form-group">
+                    <label>كلمة المرور</label>
+                    <input type="password" id="loginPassword" value="admin">
+                </div>
+                <div style="display: flex; gap: 10px; justify-content: center;">
+                    <button class="btn btn-primary" id="loginBtn">دخول</button>
+                    <button class="btn btn-danger" id="logoutBtn" style="display: none;">خروج</button>
+                </div>
+                <p style="margin-top: 15px; text-align: center;">
+                    <a href="#" id="forgotLink">تغيير بيانات الدخول</a>
+                </p>
+            </div>
+        </div>
+    </div>
+</div>
+
+        <!-- باقي الصفحات (كما هي مع بعض التعديلات الطفيفة) -->
+        <!-- صفحة تغيير كلمة المرور -->
+        <div id="page-change-password" class="page">
+            <h2>تغيير بيانات الدخول</h2>
+            <div class="form-group">
+                <label>اسم المستخدم القديم</label>
+                <input type="text" id="oldUsername">
+            </div>
+            <div class="form-group">
+                <label>كلمة المرور القديمة</label>
+                <input type="password" id="oldPassword">
+            </div>
+            <div class="form-group">
+                <label>اسم المستخدم الجديد</label>
+                <input type="text" id="newUsername">
+            </div>
+            <div class="form-group">
+                <label>كلمة المرور الجديدة</label>
+                <input type="password" id="newPassword">
+            </div>
+            <div class="form-group">
+                <label>تأكيد كلمة المرور</label>
+                <input type="password" id="confirmPassword">
+            </div>
+            <button class="btn btn-primary" id="savePasswordBtn">حفظ</button>
+            <button class="btn btn-secondary" id="cancelPasswordBtn">رجوع</button>
+        </div>
+
+        <!-- صفحة المركبات المسجلة -->
+        <div id="page-vehicles" class="page">
+            <div style="display: flex; justify-content: space-between; align-items: center;">
+                <h2>المركبات المسجلة</h2>
+                <div>
+                    <button class="btn btn-primary" id="addVehicleBtn">إضافة مركبة</button>
+                    <button class="btn btn-secondary" id="backFromVehiclesToLogin">رجوع</button>
+                </div>
+            </div>
+            <div id="vehiclesList"></div>
+        </div>
+
+        <!-- صفحة إضافة/تعديل مركبة -->
+        <div id="page-add-vehicle" class="page">
+            <h2 id="vehicleFormTitle">إضافة مركبة جديدة</h2>
+            <div class="form-group">
+                <label>تاريخ الإدخال</label>
+                <input type="date" id="vehicleDate">
+            </div>
+            <div class="form-group">
+                <label>رقم التسجيل</label>
+                <input type="text" id="vehicleReg" placeholder="مثال: 1234 أ 5">
+            </div>
+            <div class="form-group">
+                <label>نوع المركبة</label>
+                <select id="vehicleMake">
+                    <option value="">اختر النوع</option>
+                    <option value="كيا">كيا</option>
+                    <option value="رونو">رونو</option>
+                    <option value="سيتروان">سيتروان</option>
+                    <option value="سيات">سيات</option>
+                    <option value="بيجو">بيجو</option>
+                    <option value="فولزفاغن">فولزفاغن</option>
+                    <option value="هونداي">هونداي</option>
+                    <option value="شيفرولي">شيفرولي</option>
+                    <option value="مرسيدس">مرسيدس</option>
+                    <option value="تويوتا">تويوتا</option>
+                    <option value="داسيا">داسيا</option>
+                    <option value="نيسان">نيسان</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label>اسم السيارة</label>
+                <select id="vehicleModel">
+                    <option value="">اختر الاسم</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label>نوع الوقود</label>
+                <select id="vehicleFuel">
+                    <option value="بنزين">بنزين</option>
+                    <option value="مازوت">مازوت</option>
+                    <option value="غاز">غاز</option>
+                    <option value="كهرباء">كهرباء</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label>رقم العداد عند التسجيل</label>
+                <input type="number" id="vehicleOdometer" value="0">
+            </div>
+            <button class="btn btn-primary" id="saveVehicleBtn">حفظ</button>
+            <button class="btn btn-secondary" id="cancelAddVehicle">إلغاء</button>
+        </div>
+
+        <!-- صفحة متابعة صيانة السيارة -->
+        <div id="page-service" class="page">
+            <div style="display: flex; justify-content: space-between; align-items: center;">
+                <h2 id="serviceVehicleTitle"></h2>
+                <button class="btn btn-secondary" id="backFromServiceToVehicles">رجوع</button>
+            </div>
+            <div id="vehicleInfoDisplay" style="background: #e9ecef; padding: 10px; border-radius: 10px; margin: 10px 0;"></div>
+            <div class="service-grid">
+                <button class="service-btn" id="btnSpareParts"><i class="fas fa-tools"></i> قطع الغيار</button>
+                <button class="service-btn" id="btnOilChange"><i class="fas fa-oil-can"></i> تغيير الزيوت</button>
+                <button class="service-btn" id="btnInsurance"><i class="fas fa-shield-alt"></i> تأمين</button>
+                <button class="service-btn" id="btnTechnical"><i class="fas fa-clipboard-check"></i> الحالة التقنية</button>
+                <button class="service-btn" id="btnFuel"><i class="fas fa-gas-pump"></i> الوقود</button>
+                <button class="service-btn" id="btnLicense"><i class="fas fa-id-card"></i> رخصة السياقة</button>
+                <button class="service-btn" id="btnNotifications"><i class="fas fa-bell"></i> التنبيهات</button>
+                <button class="service-btn" id="btnReports"><i class="fas fa-file-pdf"></i> التقارير</button>
+            </div>
+        </div>
+
+        <!-- صفحة قطع الغيار المستبدلة -->
+        <div id="page-spare-parts" class="page">
+            <h2>قطع الغيار المستبدلة</h2>
+            <div class="form-group">
+                <label>تاريخ التغيير</label>
+                <input type="date" id="spareDate">
+            </div>
+            <div class="form-group">
+                <label>اسم القطعة</label>
+                <input type="text" id="spareName" list="sparePartsList">
+                <datalist id="sparePartsList"></datalist>
+            </div>
+            <div class="form-group">
+                <label>رقم العداد عند التغيير</label>
+                <input type="number" id="spareOdometer">
+            </div>
+            <div class="form-group">
+                <label>الرقم الافتراضي للصلاحية (كم)</label>
+                <input type="number" id="spareDefaultKm" value="50000">
+            </div>
+            <div class="form-group">
+                <label>صورة القطعة</label>
+                <input type="file" id="spareImage" accept="image/*">
+                <img id="spareImagePreview" class="image-preview" style="display: none;">
+            </div>
+            <button class="btn btn-primary" id="saveSpareBtn">حفظ</button>
+            <button class="btn btn-secondary" id="backFromSpare">رجوع</button>
+            <div id="sparePartsTableContainer"></div>
+        </div>
+
+        <!-- صفحة تغيير الزيوت -->
+        <div id="page-oil-change" class="page">
+            <h2>تغيير الزيوت</h2>
+            <div class="form-group">
+                <label>تاريخ التغيير</label>
+                <input type="date" id="oilDate">
+            </div>
+            <div class="form-group">
+                <label>نوع الزيت</label>
+                <select id="oilType">
+                    <option value="زيت الفرامل">زيت الفرامل</option>
+                    <option value="زيت المحرك">زيت المحرك</option>
+                    <option value="زيت المكابح">زيت المكابح</option>
+                    <option value="زيت المساعدات">زيت المساعدات</option>
+                    <option value="زيت القابض">زيت القابض</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label>اسم الزيت (العلامة التجارية)</label>
+                <select id="oilBrand">
+                    <option value="توتال">توتال</option>
+                    <option value="شل">شل</option>
+                    <option value="موبيل">موبيل</option>
+                    <option value="كاسترول">كاسترول</option>
+                    <option value="فالفولين">فالفولين</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label>رقم العداد عند التغيير</label>
+                <input type="number" id="oilOdometer">
+            </div>
+            <div class="form-group">
+                <label>الرقم الافتراضي للصلاحية (كم)</label>
+                <input type="number" id="oilDefaultKm" value="10000">
+            </div>
+            <div class="form-group">
+                <label>تغيير الفلتر</label>
+                <select id="oilFilter">
+                    <option value="نعم">نعم</option>
+                    <option value="لا">لا</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label>لزوجة الزيت</label>
+                <select id="oilViscosity">
+                    <option value="5W30">5W30</option>
+                    <option value="10W40">10W40</option>
+                    <option value="20W50">20W50</option>
+                </select>
+            </div>
+            <button class="btn btn-primary" id="saveOilBtn">حفظ</button>
+            <button class="btn btn-secondary" id="backFromOil">رجوع</button>
+            <div id="oilTableContainer"></div>
+        </div>
+
+        <!-- صفحة التأمين -->
+        <div id="page-insurance" class="page">
+            <h2>تأمين المركبة</h2>
+            <div class="form-group">
+                <label>شركة التأمين</label>
+                <select id="insuranceCompany">
+                    <option value="الخليجية">الخليجية</option>
+                    <option value="المتعاونة">المتعاونة</option>
+                    <option value="الوطنية">الوطنية</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label>نوع التأمين</label>
+                <select id="insuranceType">
+                    <option value="شامل">شامل</option>
+                    <option value="ضد الغير">ضد الغير</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label>تاريخ البداية</label>
+                <input type="date" id="insuranceStart">
+            </div>
+            <div class="form-group">
+                <label>تاريخ النهاية</label>
+                <input type="date" id="insuranceEnd">
+            </div>
+            <div class="form-group">
+                <label>صورة الشهادة</label>
+                <input type="file" id="insuranceImage" accept="image/*">
+                <img id="insuranceImagePreview" class="image-preview" style="display: none;">
+            </div>
+            <button class="btn btn-primary" id="saveInsuranceBtn">حفظ</button>
+            <button class="btn btn-secondary" id="backFromInsurance">رجوع</button>
+        </div>
+
+        <!-- صفحة الحالة التقنية -->
+        <div id="page-technical" class="page">
+            <h2>الحالة التقنية (الفحص الدوري)</h2>
+            <div class="form-group">
+                <label>تاريخ البداية</label>
+                <input type="date" id="techStart">
+            </div>
+            <div class="form-group">
+                <label>تاريخ النهاية</label>
+                <input type="date" id="techEnd">
+            </div>
+            <div class="form-group">
+                <label>صورة الشهادة</label>
+                <input type="file" id="techImage" accept="image/*">
+                <img id="techImagePreview" class="image-preview" style="display: none;">
+            </div>
+            <button class="btn btn-primary" id="saveTechBtn">حفظ</button>
+            <button class="btn btn-secondary" id="backFromTech">رجوع</button>
+        </div>
+
+        <!-- صفحة الوقود -->
+        <div id="page-fuel" class="page">
+            <h2>تسجيل التزود بالوقود</h2>
+            <div class="form-group">
+                <label>تاريخ التزويد</label>
+                <input type="date" id="fuelDate">
+            </div>
+            <div class="form-group">
+                <label>نوع الوقود</label>
+                <input type="text" id="fuelType" readonly>
+            </div>
+            <div class="form-group">
+                <label>رقم العداد</label>
+                <input type="number" id="fuelOdometer">
+            </div>
+            <div class="form-group">
+                <label>ثمن التزويد (دينار)</label>
+                <input type="number" id="fuelCost">
+            </div>
+            <div class="form-group">
+                <label>سعر اللتر</label>
+                <select id="fuelPricePerLiter">
+                    <option value="74.00">74.00</option>
+                    <option value="12.00">12.00</option>
+                    <option value="32.00">32.00</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label>المحطة</label>
+                <input type="text" id="fuelStation">
+            </div>
+            <button class="btn btn-primary" id="saveFuelBtn">حفظ</button>
+            <button class="btn btn-secondary" id="backFromFuel">رجوع</button>
+            <div id="fuelTableContainer"></div>
+        </div>
+
+        <!-- صفحة رخصة السياقة -->
+        <div id="page-license" class="page">
+            <h2>رخصة السياقة</h2>
+            <div class="form-group">
+                <label>تاريخ الإصدار</label>
+                <input type="date" id="licenseIssue">
+            </div>
+            <div class="form-group">
+                <label>تاريخ انتهاء الصلاحية</label>
+                <input type="date" id="licenseExpiry">
+            </div>
+            <div class="form-group">
+                <label>صورة الرخصة</label>
+                <input type="file" id="licenseImage" accept="image/*">
+                <img id="licenseImagePreview" class="image-preview" style="display: none;">
+            </div>
+            <button class="btn btn-primary" id="saveLicenseBtn">حفظ</button>
+            <button class="btn btn-secondary" id="backFromLicense">رجوع</button>
+        </div>
+
+        <!-- صفحة التنبيهات -->
+        <div id="page-notifications" class="page">
+            <h2>التنبيهات</h2>
+            <div id="notificationsList"></div>
+            <button class="btn btn-secondary" id="backFromNotifications">رجوع</button>
+        </div>
+
+        <!-- صفحة التقارير -->
+        <div id="page-reports" class="page">
+            <h2>التقارير</h2>
+            <button class="btn btn-primary" id="generateReportBtn">توليد تقرير PDF</button>
+            <button class="btn btn-secondary" id="backFromReports">رجوع</button>
+        </div>
+    </div>
+
+    <!-- ربط ملف JavaScript الخارجي -->
+    <script src="script.js"></script>
+</body>
+</html>
