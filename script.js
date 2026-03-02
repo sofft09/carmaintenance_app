@@ -6,7 +6,6 @@ let appData = {
 
 let currentUser = null;
 let currentVehicleId = null;
-let hiddenAlerts = []; // لتخزين التنبيهات المخفية مؤقتاً في هذه الجلسة
 
 // تحميل البيانات
 function loadData() {
@@ -21,9 +20,9 @@ function loadData() {
         v.spareParts = v.spareParts || [];
         v.oilChanges = v.oilChanges || [];
         v.fuelLogs = v.fuelLogs || [];
-        v.insurance = v.insurance || null;
-        v.technical = v.technical || null;
-        v.license = v.license || null;
+        v.insurance = Array.isArray(v.insurance) ? v.insurance : (v.insurance ? [v.insurance] : []);
+        v.technical = Array.isArray(v.technical) ? v.technical : (v.technical ? [v.technical] : []);
+        v.license = Array.isArray(v.license) ? v.license : (v.license ? [v.license] : []);
     });
     const session = localStorage.getItem('currentUser');
     if (session) {
@@ -38,7 +37,6 @@ function loadData() {
             }
         } catch (e) {}
     } else {
-        // تأكيد أن الصفحة النشطة هي تسجيل الدخول
         showPage('login');
     }
 }
@@ -50,8 +48,8 @@ function saveData() {
 // الإشعارات
 function showNotification(msg, isError = false) {
     const n = document.getElementById('notification');
-    n.style.background = isError ? '#dc3545' : '#28a745';
-    n.textContent = msg;
+    n.style.background = isError ? 'linear-gradient(145deg, #dc3545, #c82333)' : 'linear-gradient(145deg, #28a745, #218838)';
+    n.innerHTML = `<i class="fas ${isError ? 'fa-exclamation-circle' : 'fa-check-circle'}"></i> ${msg}`;
     n.style.display = 'block';
     setTimeout(() => n.style.display = 'none', 3000);
 }
@@ -96,7 +94,7 @@ function renderVehicles() {
     const container = document.getElementById('vehiclesList');
     container.innerHTML = '';
     if (appData.vehicles.length === 0) {
-        container.innerHTML = '<p>لا توجد مركبات مسجلة.</p>';
+        container.innerHTML = '<p style="text-align: center; padding: 30px;">لا توجد مركبات مسجلة. أضف مركبة جديدة.</p>';
         return;
     }
     appData.vehicles.forEach((v, i) => {
@@ -104,10 +102,10 @@ function renderVehicles() {
         card.className = 'vehicle-card';
         card.innerHTML = `
             <h3>${v.make} ${v.model}</h3>
-            <p>رقم: ${v.regNumber} | عداد: ${v.odometer || 0}</p>
+            <p><i class="fas fa-hashtag"></i> رقم: ${v.regNumber} | <i class="fas fa-tachometer-alt"></i> عداد: ${v.odometer || 0} كم</p>
             <div class="actions">
-                <button class="btn btn-warning btn-sm" onclick="editVehicle(${i})">تعديل</button>
-                <button class="btn btn-danger btn-sm" onclick="deleteVehicle(${i})">حذف</button>
+                <button class="btn btn-warning btn-sm" onclick="editVehicle(${i})"><i class="fas fa-edit"></i> تعديل</button>
+                <button class="btn btn-danger btn-sm" onclick="deleteVehicle(${i})"><i class="fas fa-trash"></i> حذف</button>
             </div>
         `;
         card.addEventListener('click', (e) => {
@@ -121,7 +119,6 @@ function renderVehicles() {
                 }
                 appData.vehicles[i].odometer = num;
                 saveData();
-                // بعد التحديث، نعرض التنبيهات ثم نذهب للخدمات
                 showVehicleServiceWithAlerts(i);
             }
         });
@@ -150,79 +147,115 @@ window.deleteVehicle = function(index) {
         appData.vehicles.splice(index, 1);
         saveData();
         renderVehicles();
+        showNotification('تم حذف المركبة بنجاح');
     }
 };
 
 // عرض صفحة الخدمات لمركبة
 function showVehicleService(index) {
     const v = appData.vehicles[index];
-    document.getElementById('serviceVehicleTitle').innerText = `متابعة صيانة: ${v.make} ${v.model}`;
+    document.getElementById('serviceVehicleTitle').innerHTML = `<i class="fas fa-car"></i> ${v.make} ${v.model}`;
     document.getElementById('vehicleInfoDisplay').innerHTML = `
-        <strong>${v.make} ${v.model}</strong> - رقم: ${v.regNumber} - آخر عداد: ${v.odometer}
+        <i class="fas fa-id-card"></i> <strong>${v.make} ${v.model}</strong> | 
+        <i class="fas fa-hashtag"></i> رقم: ${v.regNumber} | 
+        <i class="fas fa-tachometer-alt"></i> آخر عداد: ${v.odometer} كم
     `;
     currentVehicleId = index;
     showPage('service');
 }
 
-// دالة جديدة: عرض التنبيهات بعد تحديث العداد ثم الانتقال للخدمات
+// عرض التنبيهات بعد تحديث العداد
 function showVehicleServiceWithAlerts(index) {
     const vehicle = appData.vehicles[index];
+    let alerts = generateAlerts(vehicle);
+    
+    if (alerts.length > 0) {
+        let alertMessage = '⚠️ التنبيهات الحالية:\n' + alerts.map(a => a.text).join('\n');
+        alert(alertMessage);
+    } else {
+        alert('✅ لا توجد تنبيهات حالياً.');
+    }
+    
+    showVehicleService(index);
+}
+
+// توليد التنبيهات بناءً على آخر سجل لكل عنصر
+function generateAlerts(vehicle) {
     let alerts = [];
 
-    // قطع الغيار
+    // قطع الغيار: نأخذ آخر سجل لكل قطعة (بناءً على التاريخ)
+    const sparePartsMap = new Map();
     vehicle.spareParts.forEach(p => {
+        if (!sparePartsMap.has(p.name) || new Date(p.date) > new Date(sparePartsMap.get(p.name).date)) {
+            sparePartsMap.set(p.name, p);
+        }
+    });
+    const latestSpareParts = Array.from(sparePartsMap.values());
+    
+    latestSpareParts.forEach(p => {
         const used = vehicle.odometer - p.odo;
         const left = p.defaultKm - used;
         if (left < 50000 && left > 0) {
-            alerts.push(`⚠️ قطعة ${p.name} تبقى لها ${left} كم (أقل من 50000 كم)`);
+            alerts.push({ 
+                text: `⚠️ قطعة ${p.name} تبقى لها ${left} كم (أقل من 50000 كم)`,
+                type: 'spare',
+                key: `spare-${p.name}`
+            });
         } else if (left <= 0) {
-            alerts.push(`🔴 قطعة ${p.name} انتهت صلاحيتها (تجاوزت ${p.defaultKm} كم)`);
+            alerts.push({ 
+                text: `🔴 قطعة ${p.name} انتهت صلاحيتها (تجاوزت ${p.defaultKm} كم)`,
+                type: 'spare',
+                key: `spare-${p.name}`
+            });
         }
     });
 
-    // التأمين
-    if (vehicle.insurance && vehicle.insurance.end) {
-        const today = new Date();
-        const end = new Date(vehicle.insurance.end);
-        const diff = Math.ceil((end - today) / (1000*60*60*24));
-        if (diff < 5 && diff >= 0) {
-            alerts.push(`⚠️ التأمين سينتهي بعد ${diff} أيام`);
-        } else if (diff < 0) {
-            alerts.push(`🔴 التأمين منتهي الصلاحية`);
+    // التأمين: آخر سجل
+    if (vehicle.insurance.length > 0) {
+        const lastInsurance = vehicle.insurance.sort((a, b) => new Date(b.start) - new Date(a.start))[0];
+        if (lastInsurance.end) {
+            const today = new Date();
+            const end = new Date(lastInsurance.end);
+            const diff = Math.ceil((end - today) / (1000*60*60*24));
+            if (diff < 5 && diff >= 0) {
+                alerts.push({ text: `⚠️ التأمين سينتهي بعد ${diff} أيام`, type: 'insurance', key: 'insurance' });
+            } else if (diff < 0) {
+                alerts.push({ text: `🔴 التأمين منتهي الصلاحية`, type: 'insurance', key: 'insurance' });
+            }
         }
     }
 
-    // الفحص الفني
-    if (vehicle.technical && vehicle.technical.end) {
-        const today = new Date();
-        const end = new Date(vehicle.technical.end);
-        const diff = Math.ceil((end - today) / (1000*60*60*24));
-        if (diff < 5 && diff >= 0) {
-            alerts.push(`⚠️ الفحص الفني سينتهي بعد ${diff} أيام`);
-        } else if (diff < 0) {
-            alerts.push(`🔴 الفحص الفني منتهي الصلاحية`);
+    // الفحص الفني: آخر سجل
+    if (vehicle.technical.length > 0) {
+        const lastTech = vehicle.technical.sort((a, b) => new Date(b.start) - new Date(a.start))[0];
+        if (lastTech.end) {
+            const today = new Date();
+            const end = new Date(lastTech.end);
+            const diff = Math.ceil((end - today) / (1000*60*60*24));
+            if (diff < 5 && diff >= 0) {
+                alerts.push({ text: `⚠️ الفحص الفني سينتهي بعد ${diff} أيام`, type: 'technical', key: 'technical' });
+            } else if (diff < 0) {
+                alerts.push({ text: `🔴 الفحص الفني منتهي الصلاحية`, type: 'technical', key: 'technical' });
+            }
         }
     }
 
-    // رخصة السياقة
-    if (vehicle.license && vehicle.license.expiry) {
-        const today = new Date();
-        const end = new Date(vehicle.license.expiry);
-        const diff = Math.ceil((end - today) / (1000*60*60*24));
-        if (diff < 5 && diff >= 0) {
-            alerts.push(`⚠️ رخصة السياقة ستنتهي بعد ${diff} أيام`);
-        } else if (diff < 0) {
-            alerts.push(`🔴 رخصة السياقة منتهية الصلاحية`);
+    // رخصة السياقة: آخر سجل
+    if (vehicle.license.length > 0) {
+        const lastLicense = vehicle.license.sort((a, b) => new Date(b.issue) - new Date(a.issue))[0];
+        if (lastLicense.expiry) {
+            const today = new Date();
+            const end = new Date(lastLicense.expiry);
+            const diff = Math.ceil((end - today) / (1000*60*60*24));
+            if (diff < 5 && diff >= 0) {
+                alerts.push({ text: `⚠️ رخصة السياقة ستنتهي بعد ${diff} أيام`, type: 'license', key: 'license' });
+            } else if (diff < 0) {
+                alerts.push({ text: `🔴 رخصة السياقة منتهية الصلاحية`, type: 'license', key: 'license' });
+            }
         }
     }
 
-    if (alerts.length > 0) {
-        alert('التنبيهات:\n' + alerts.join('\n'));
-    } else {
-        alert('لا توجد تنبيهات.');
-    }
-
-    showVehicleService(index);
+    return alerts;
 }
 
 // دوال النافذة المنبثقة للصور
@@ -260,6 +293,7 @@ document.addEventListener('DOMContentLoaded', () => {
             document.getElementById('logoutBtn').style.display = 'inline-block';
             showPage('vehicles');
             renderVehicles();
+            showNotification(`مرحباً ${user} 👋`);
         } else {
             showNotification('اسم المستخدم أو كلمة المرور غير صحيحة', true);
         }
@@ -271,6 +305,7 @@ document.addEventListener('DOMContentLoaded', () => {
         localStorage.removeItem('currentUser');
         document.getElementById('logoutBtn').style.display = 'none';
         showPage('login');
+        showNotification('تم تسجيل الخروج');
     });
 
     // رابط تغيير كلمة المرور
@@ -307,7 +342,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
         appData.users[idx] = { username: newU, password: newP };
         saveData();
-        showNotification('تم التغيير بنجاح');
+        showNotification('تم تغيير بيانات الدخول بنجاح');
         showPage('login');
     });
 
@@ -355,7 +390,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const vehicle = {
             date, regNumber: reg, make, model, fuel, odometer: odo,
             spareParts: [], oilChanges: [], fuelLogs: [],
-            insurance: null, technical: null, license: null
+            insurance: [], technical: [], license: []
         };
 
         const editIndex = document.getElementById('saveVehicleBtn').dataset.editIndex;
@@ -364,15 +399,15 @@ document.addEventListener('DOMContentLoaded', () => {
             vehicle.spareParts = old.spareParts || [];
             vehicle.oilChanges = old.oilChanges || [];
             vehicle.fuelLogs = old.fuelLogs || [];
-            vehicle.insurance = old.insurance;
-            vehicle.technical = old.technical;
-            vehicle.license = old.license;
+            vehicle.insurance = old.insurance || [];
+            vehicle.technical = old.technical || [];
+            vehicle.license = old.license || [];
             appData.vehicles[editIndex] = vehicle;
         } else {
             appData.vehicles.push(vehicle);
         }
         saveData();
-        showNotification('تم حفظ المركبة');
+        showNotification('تم حفظ المركبة بنجاح');
         showPage('vehicles');
         renderVehicles();
     });
@@ -397,12 +432,12 @@ document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('btnInsurance').addEventListener('click', () => {
         if (currentVehicleId === null) return;
         showPage('insurance');
-        loadInsuranceData();
+        renderInsurance();
     });
     document.getElementById('btnTechnical').addEventListener('click', () => {
         if (currentVehicleId === null) return;
         showPage('technical');
-        loadTechnicalData();
+        renderTechnical();
     });
     document.getElementById('btnFuel').addEventListener('click', () => {
         if (currentVehicleId === null) return;
@@ -412,7 +447,7 @@ document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('btnLicense').addEventListener('click', () => {
         if (currentVehicleId === null) return;
         showPage('license');
-        loadLicenseData();
+        renderLicense();
     });
     document.getElementById('btnNotifications').addEventListener('click', () => {
         if (currentVehicleId === null) return;
@@ -449,18 +484,20 @@ document.addEventListener('DOMContentLoaded', () => {
 
         const container = document.getElementById('sparePartsTableContainer');
         if (!vehicle.spareParts || vehicle.spareParts.length === 0) {
-            container.innerHTML = '<p>لا توجد قطع مسجلة.</p>';
+            container.innerHTML = '<p style="text-align: center; padding: 20px;">لا توجد قطع مسجلة.</p>';
             return;
         }
+        // ترتيب تنازلي حسب التاريخ
+        const sorted = [...vehicle.spareParts].sort((a, b) => new Date(b.date) - new Date(a.date));
         let html = '<div class="table-responsive"><table><tr><th>التاريخ</th><th>القطعة</th><th>العداد</th><th>الصلاحية</th><th>الصورة</th><th>حذف</th></tr>';
-        vehicle.spareParts.forEach((p, idx) => {
+        sorted.forEach((p, idx) => {
             html += `<tr>
                 <td>${p.date}</td>
                 <td>${p.name}</td>
                 <td>${p.odo}</td>
                 <td>${p.defaultKm}</td>
                 <td>${p.image ? `<img src="${p.image}" class="image-preview" onclick="openModal(this.src)">` : '-'}</td>
-                <td><button class="btn btn-danger btn-sm" onclick="deleteSparePart(${idx})">حذف</button></td>
+                <td><button class="btn btn-danger btn-sm" onclick="deleteSparePart('${idx}')"><i class="fas fa-trash"></i></button></td>
             </tr>`;
         });
         html += '</table></div>';
@@ -472,6 +509,7 @@ document.addEventListener('DOMContentLoaded', () => {
             appData.vehicles[currentVehicleId].spareParts.splice(idx, 1);
             saveData();
             renderSpareParts();
+            showNotification('تم الحذف');
         }
     };
 
@@ -498,7 +536,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const defaultKm = parseInt(document.getElementById('spareDefaultKm').value);
         const file = document.getElementById('spareImage').files[0];
         if (!date || !name || isNaN(odo) || isNaN(defaultKm)) {
-            showNotification('املأ البيانات', true);
+            showNotification('املأ جميع البيانات', true);
             return;
         }
         const vehicle = appData.vehicles[currentVehicleId];
@@ -509,11 +547,11 @@ document.addEventListener('DOMContentLoaded', () => {
                 newPart.image = e.target.result;
                 vehicle.spareParts.push(newPart);
                 saveData();
-                showNotification('تم الحفظ');
+                showNotification('تم حفظ القطعة');
                 document.getElementById('spareDate').value = '';
                 document.getElementById('spareName').value = '';
                 document.getElementById('spareOdometer').value = '';
-                document.getElementById('spareDefaultKm').value = '50000';
+                document.getElementById('spareDefaultKm').value = '';
                 document.getElementById('spareImage').value = '';
                 document.getElementById('spareImagePreview').style.display = 'none';
                 renderSpareParts();
@@ -522,10 +560,11 @@ document.addEventListener('DOMContentLoaded', () => {
         } else {
             vehicle.spareParts.push(newPart);
             saveData();
-            showNotification('تم الحفظ');
+            showNotification('تم حفظ القطعة');
             document.getElementById('spareDate').value = '';
             document.getElementById('spareName').value = '';
             document.getElementById('spareOdometer').value = '';
+            document.getElementById('spareDefaultKm').value = '';
             document.getElementById('spareImagePreview').style.display = 'none';
             renderSpareParts();
         }
@@ -536,11 +575,12 @@ document.addEventListener('DOMContentLoaded', () => {
         const vehicle = appData.vehicles[currentVehicleId];
         const container = document.getElementById('oilTableContainer');
         if (!vehicle.oilChanges || vehicle.oilChanges.length === 0) {
-            container.innerHTML = '<p>لا توجد تغييرات زيت.</p>';
+            container.innerHTML = '<p style="text-align: center; padding: 20px;">لا توجد تغييرات زيت.</p>';
             return;
         }
+        const sorted = [...vehicle.oilChanges].sort((a, b) => new Date(b.date) - new Date(a.date));
         let html = '<div class="table-responsive"><table><tr><th>التاريخ</th><th>النوع</th><th>العلامة</th><th>العداد</th><th>الصلاحية</th><th>فلتر</th><th>اللزوجة</th><th>حذف</th></tr>';
-        vehicle.oilChanges.forEach((o, idx) => {
+        sorted.forEach((o, idx) => {
             html += `<tr>
                 <td>${o.date}</td>
                 <td>${o.type}</td>
@@ -549,7 +589,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 <td>${o.defaultKm}</td>
                 <td>${o.filter}</td>
                 <td>${o.viscosity}</td>
-                <td><button class="btn btn-danger btn-sm" onclick="deleteOilChange(${idx})">حذف</button></td>
+                <td><button class="btn btn-danger btn-sm" onclick="deleteOilChange('${idx}')"><i class="fas fa-trash"></i></button></td>
             </tr>`;
         });
         html += '</table></div>';
@@ -561,6 +601,7 @@ document.addEventListener('DOMContentLoaded', () => {
             appData.vehicles[currentVehicleId].oilChanges.splice(idx, 1);
             saveData();
             renderOilChanges();
+            showNotification('تم الحذف');
         }
     };
 
@@ -572,42 +613,52 @@ document.addEventListener('DOMContentLoaded', () => {
         const defaultKm = parseInt(document.getElementById('oilDefaultKm').value);
         const filter = document.getElementById('oilFilter').value;
         const viscosity = document.getElementById('oilViscosity').value;
-        if (!date || isNaN(odo)) {
-            showNotification('املأ البيانات', true);
+        if (!date || isNaN(odo) || isNaN(defaultKm)) {
+            showNotification('املأ جميع البيانات', true);
             return;
         }
         const vehicle = appData.vehicles[currentVehicleId];
         vehicle.oilChanges.push({ date, type, brand, odo, defaultKm, filter, viscosity });
         saveData();
-        showNotification('تم الحفظ');
+        showNotification('تم حفظ تغيير الزيت');
         document.getElementById('oilDate').value = '';
         document.getElementById('oilOdometer').value = '';
+        document.getElementById('oilDefaultKm').value = '';
         renderOilChanges();
     });
 
     // ================== التأمين ==================
-    function loadInsuranceData() {
-        const v = appData.vehicles[currentVehicleId];
-        if (v.insurance) {
-            document.getElementById('insuranceCompany').value = v.insurance.company || 'الخليجية';
-            document.getElementById('insuranceType').value = v.insurance.type || 'شامل';
-            document.getElementById('insuranceStart').value = v.insurance.start || '';
-            document.getElementById('insuranceEnd').value = v.insurance.end || '';
-            if (v.insurance.image) {
-                const preview = document.getElementById('insuranceImagePreview');
-                preview.src = v.insurance.image;
-                preview.style.display = 'block';
-            } else {
-                document.getElementById('insuranceImagePreview').style.display = 'none';
-            }
-        } else {
-            document.getElementById('insuranceCompany').value = 'الخليجية';
-            document.getElementById('insuranceType').value = 'شامل';
-            document.getElementById('insuranceStart').value = '';
-            document.getElementById('insuranceEnd').value = '';
-            document.getElementById('insuranceImagePreview').style.display = 'none';
+    function renderInsurance() {
+        const vehicle = appData.vehicles[currentVehicleId];
+        const container = document.getElementById('insuranceTableContainer');
+        if (!vehicle.insurance || vehicle.insurance.length === 0) {
+            container.innerHTML = '<p style="text-align: center; padding: 20px;">لا توجد سجلات تأمين.</p>';
+            return;
         }
+        const sorted = [...vehicle.insurance].sort((a, b) => new Date(b.start) - new Date(a.start));
+        let html = '<div class="table-responsive"><table><tr><th>الشركة</th><th>النوع</th><th>تاريخ البداية</th><th>تاريخ النهاية</th><th>الصورة</th><th>حذف</th></tr>';
+        sorted.forEach((ins, idx) => {
+            html += `<tr>
+                <td>${ins.company}</td>
+                <td>${ins.type}</td>
+                <td>${ins.start}</td>
+                <td>${ins.end}</td>
+                <td>${ins.image ? `<img src="${ins.image}" class="image-preview" onclick="openModal(this.src)">` : '-'}</td>
+                <td><button class="btn btn-danger btn-sm" onclick="deleteInsurance('${idx}')"><i class="fas fa-trash"></i></button></td>
+            </tr>`;
+        });
+        html += '</table></div>';
+        container.innerHTML = html;
     }
+
+    window.deleteInsurance = (idx) => {
+        if (confirm('حذف هذا السجل؟')) {
+            appData.vehicles[currentVehicleId].insurance.splice(idx, 1);
+            saveData();
+            renderInsurance();
+            showNotification('تم الحذف');
+        }
+    };
 
     // معاينة صورة التأمين
     document.getElementById('insuranceImage').addEventListener('change', function(e) {
@@ -644,39 +695,61 @@ document.addEventListener('DOMContentLoaded', () => {
             const reader = new FileReader();
             reader.onload = (e) => {
                 insuranceData.image = e.target.result;
-                vehicle.insurance = insuranceData;
+                vehicle.insurance.push(insuranceData);
                 saveData();
                 showNotification('تم حفظ التأمين مع الصورة');
                 document.getElementById('insuranceImage').value = '';
                 document.getElementById('insuranceImagePreview').style.display = 'none';
+                clearInsuranceForm();
+                renderInsurance();
             };
             reader.readAsDataURL(file);
         } else {
-            vehicle.insurance = insuranceData;
+            vehicle.insurance.push(insuranceData);
             saveData();
             showNotification('تم حفظ التأمين');
+            clearInsuranceForm();
+            renderInsurance();
         }
     });
 
-    // ================== الحالة التقنية ==================
-    function loadTechnicalData() {
-        const v = appData.vehicles[currentVehicleId];
-        if (v.technical) {
-            document.getElementById('techStart').value = v.technical.start || '';
-            document.getElementById('techEnd').value = v.technical.end || '';
-            if (v.technical.image) {
-                const preview = document.getElementById('techImagePreview');
-                preview.src = v.technical.image;
-                preview.style.display = 'block';
-            } else {
-                document.getElementById('techImagePreview').style.display = 'none';
-            }
-        } else {
-            document.getElementById('techStart').value = '';
-            document.getElementById('techEnd').value = '';
-            document.getElementById('techImagePreview').style.display = 'none';
-        }
+    function clearInsuranceForm() {
+        document.getElementById('insuranceCompany').value = 'الخليجية';
+        document.getElementById('insuranceType').value = 'شامل';
+        document.getElementById('insuranceStart').value = '';
+        document.getElementById('insuranceEnd').value = '';
     }
+
+    // ================== الحالة التقنية ==================
+    function renderTechnical() {
+        const vehicle = appData.vehicles[currentVehicleId];
+        const container = document.getElementById('techTableContainer');
+        if (!vehicle.technical || vehicle.technical.length === 0) {
+            container.innerHTML = '<p style="text-align: center; padding: 20px;">لا توجد سجلات فحص فني.</p>';
+            return;
+        }
+        const sorted = [...vehicle.technical].sort((a, b) => new Date(b.start) - new Date(a.start));
+        let html = '<div class="table-responsive"><table><tr><th>تاريخ البداية</th><th>تاريخ النهاية</th><th>الصورة</th><th>حذف</th></tr>';
+        sorted.forEach((tech, idx) => {
+            html += `<tr>
+                <td>${tech.start}</td>
+                <td>${tech.end}</td>
+                <td>${tech.image ? `<img src="${tech.image}" class="image-preview" onclick="openModal(this.src)">` : '-'}</td>
+                <td><button class="btn btn-danger btn-sm" onclick="deleteTechnical('${idx}')"><i class="fas fa-trash"></i></button></td>
+            </tr>`;
+        });
+        html += '</table></div>';
+        container.innerHTML = html;
+    }
+
+    window.deleteTechnical = (idx) => {
+        if (confirm('حذف هذا السجل؟')) {
+            appData.vehicles[currentVehicleId].technical.splice(idx, 1);
+            saveData();
+            renderTechnical();
+            showNotification('تم الحذف');
+        }
+    };
 
     // معاينة صورة الفحص
     document.getElementById('techImage').addEventListener('change', function(e) {
@@ -711,19 +784,28 @@ document.addEventListener('DOMContentLoaded', () => {
             const reader = new FileReader();
             reader.onload = (e) => {
                 techData.image = e.target.result;
-                vehicle.technical = techData;
+                vehicle.technical.push(techData);
                 saveData();
                 showNotification('تم الحفظ مع الصورة');
                 document.getElementById('techImage').value = '';
                 document.getElementById('techImagePreview').style.display = 'none';
+                clearTechForm();
+                renderTechnical();
             };
             reader.readAsDataURL(file);
         } else {
-            vehicle.technical = techData;
+            vehicle.technical.push(techData);
             saveData();
             showNotification('تم الحفظ');
+            clearTechForm();
+            renderTechnical();
         }
     });
+
+    function clearTechForm() {
+        document.getElementById('techStart').value = '';
+        document.getElementById('techEnd').value = '';
+    }
 
     // ================== الوقود مع حساب الاستهلاك ==================
     function renderFuelLogs() {
@@ -732,19 +814,16 @@ document.addEventListener('DOMContentLoaded', () => {
         const container = document.getElementById('fuelTableContainer');
         
         if (!vehicle.fuelLogs || vehicle.fuelLogs.length === 0) {
-            container.innerHTML = '<p>لا توجد تسجيلات وقود.</p>';
+            container.innerHTML = '<p style="text-align: center; padding: 20px;">لا توجد تسجيلات وقود.</p>';
             return;
         }
 
-        // حساب متوسط الاستهلاك العام
         let totalDistance = 0;
         let totalLiters = 0;
         let lastOdometer = null;
         
-        // ترتيب التسجيلات حسب التاريخ (الأقدم أولاً) للحساب
         const sortedLogs = [...vehicle.fuelLogs].sort((a, b) => new Date(a.date) - new Date(b.date));
         
-        // إنشاء جدول مع عمود الاستهلاك
         let html = '<div class="table-responsive"><table><tr><th>التاريخ</th><th>العداد</th><th>التكلفة</th><th>السعر</th><th>اللترات</th><th>المسافة</th><th>كم/لتر</th><th>المحطة</th><th>حذف</th></tr>';
         
         sortedLogs.forEach((f, idx) => {
@@ -770,7 +849,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 <td>${distance !== '-' ? distance : '-'}</td>
                 <td>${consumption !== '-' ? consumption : '-'}</td>
                 <td>${f.station}</td>
-                <td><button class="btn btn-danger btn-sm" onclick="deleteFuelLog(${idx})">حذف</button></td>
+                <td><button class="btn btn-danger btn-sm" onclick="deleteFuelLog('${idx}')"><i class="fas fa-trash"></i></button></td>
             </tr>`;
             
             lastOdometer = f.odo;
@@ -778,12 +857,9 @@ document.addEventListener('DOMContentLoaded', () => {
         
         html += '</table></div>';
         
-        // إضافة متوسط الاستهلاك الكلي
         if (totalDistance > 0 && totalLiters > 0) {
             const avgConsumption = (totalDistance / totalLiters).toFixed(2);
-            html = `<div style="background: #007bff; color: white; padding: 10px; border-radius: 10px; margin-bottom: 15px; text-align: center; font-size: 0.9rem;">
-                <strong>متوسط الاستهلاك: ${avgConsumption} كم/لتر</strong>
-            </div>` + html;
+            html = `<div class="average-consumption"><strong>⛽ متوسط الاستهلاك الكلي: ${avgConsumption} كم/لتر</strong></div>` + html;
         }
         
         container.innerHTML = html;
@@ -794,6 +870,7 @@ document.addEventListener('DOMContentLoaded', () => {
             appData.vehicles[currentVehicleId].fuelLogs.splice(idx, 1);
             saveData();
             renderFuelLogs();
+            showNotification('تم الحذف');
         }
     };
 
@@ -804,13 +881,13 @@ document.addEventListener('DOMContentLoaded', () => {
         const price = parseFloat(document.getElementById('fuelPricePerLiter').value);
         const station = document.getElementById('fuelStation').value.trim();
         if (!date || isNaN(odo) || isNaN(cost) || isNaN(price) || !station) {
-            showNotification('املأ البيانات', true);
+            showNotification('املأ جميع البيانات', true);
             return;
         }
         const vehicle = appData.vehicles[currentVehicleId];
         vehicle.fuelLogs.push({ date, odo, cost, price, station });
         saveData();
-        showNotification('تم الحفظ');
+        showNotification('تم تسجيل التزود');
         document.getElementById('fuelDate').value = '';
         document.getElementById('fuelOdometer').value = '';
         document.getElementById('fuelCost').value = '';
@@ -819,24 +896,35 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     // ================== رخصة السياقة ==================
-    function loadLicenseData() {
-        const v = appData.vehicles[currentVehicleId];
-        if (v.license) {
-            document.getElementById('licenseIssue').value = v.license.issue || '';
-            document.getElementById('licenseExpiry').value = v.license.expiry || '';
-            if (v.license.image) {
-                const preview = document.getElementById('licenseImagePreview');
-                preview.src = v.license.image;
-                preview.style.display = 'block';
-            } else {
-                document.getElementById('licenseImagePreview').style.display = 'none';
-            }
-        } else {
-            document.getElementById('licenseIssue').value = '';
-            document.getElementById('licenseExpiry').value = '';
-            document.getElementById('licenseImagePreview').style.display = 'none';
+    function renderLicense() {
+        const vehicle = appData.vehicles[currentVehicleId];
+        const container = document.getElementById('licenseTableContainer');
+        if (!vehicle.license || vehicle.license.length === 0) {
+            container.innerHTML = '<p style="text-align: center; padding: 20px;">لا توجد سجلات رخصة.</p>';
+            return;
         }
+        const sorted = [...vehicle.license].sort((a, b) => new Date(b.issue) - new Date(a.issue));
+        let html = '<div class="table-responsive"><table><tr><th>تاريخ الإصدار</th><th>تاريخ الانتهاء</th><th>الصورة</th><th>حذف</th></tr>';
+        sorted.forEach((lic, idx) => {
+            html += `<tr>
+                <td>${lic.issue}</td>
+                <td>${lic.expiry}</td>
+                <td>${lic.image ? `<img src="${lic.image}" class="image-preview" onclick="openModal(this.src)">` : '-'}</td>
+                <td><button class="btn btn-danger btn-sm" onclick="deleteLicense('${idx}')"><i class="fas fa-trash"></i></button></td>
+            </tr>`;
+        });
+        html += '</table></div>';
+        container.innerHTML = html;
     }
+
+    window.deleteLicense = (idx) => {
+        if (confirm('حذف هذا السجل؟')) {
+            appData.vehicles[currentVehicleId].license.splice(idx, 1);
+            saveData();
+            renderLicense();
+            showNotification('تم الحذف');
+        }
+    };
 
     // معاينة صورة الرخصة
     document.getElementById('licenseImage').addEventListener('change', function(e) {
@@ -871,85 +959,44 @@ document.addEventListener('DOMContentLoaded', () => {
             const reader = new FileReader();
             reader.onload = (e) => {
                 licenseData.image = e.target.result;
-                vehicle.license = licenseData;
+                vehicle.license.push(licenseData);
                 saveData();
                 showNotification('تم الحفظ مع الصورة');
                 document.getElementById('licenseImage').value = '';
                 document.getElementById('licenseImagePreview').style.display = 'none';
+                clearLicenseForm();
+                renderLicense();
             };
             reader.readAsDataURL(file);
         } else {
-            vehicle.license = licenseData;
+            vehicle.license.push(licenseData);
             saveData();
             showNotification('تم الحفظ');
+            clearLicenseForm();
+            renderLicense();
         }
     });
 
-    // ================== التنبيهات مع أزرار تجاهل ==================
+    function clearLicenseForm() {
+        document.getElementById('licenseIssue').value = '';
+        document.getElementById('licenseExpiry').value = '';
+    }
+
+    // ================== التنبيهات الذكية ==================
     function loadNotifications() {
         const vehicle = appData.vehicles[currentVehicleId];
         const container = document.getElementById('notificationsList');
-        let alerts = [];
+        const alerts = generateAlerts(vehicle);
 
-        // قطع الغيار
-        vehicle.spareParts.forEach(p => {
-            const used = vehicle.odometer - p.odo;
-            const left = p.defaultKm - used;
-            if (left < 50000 && left > 0) {
-                alerts.push({ text: `⚠️ قطعة ${p.name} تبقى لها ${left} كم (أقل من 50000 كم)`, key: `spare-${p.name}-${p.odo}-${left}` });
-            } else if (left <= 0) {
-                alerts.push({ text: `🔴 قطعة ${p.name} انتهت صلاحيتها (تجاوزت ${p.defaultKm} كم)`, key: `spare-${p.name}-${p.odo}-expired` });
-            }
-        });
-
-        // التأمين
-        if (vehicle.insurance && vehicle.insurance.end) {
-            const today = new Date();
-            const end = new Date(vehicle.insurance.end);
-            const diff = Math.ceil((end - today) / (1000*60*60*24));
-            if (diff < 5 && diff >= 0) {
-                alerts.push({ text: `⚠️ التأمين سينتهي بعد ${diff} أيام`, key: `insurance-${vehicle.insurance.end}` });
-            } else if (diff < 0) {
-                alerts.push({ text: `🔴 التأمين منتهي الصلاحية`, key: `insurance-expired` });
-            }
-        }
-
-        // الفحص الفني
-        if (vehicle.technical && vehicle.technical.end) {
-            const today = new Date();
-            const end = new Date(vehicle.technical.end);
-            const diff = Math.ceil((end - today) / (1000*60*60*24));
-            if (diff < 5 && diff >= 0) {
-                alerts.push({ text: `⚠️ الفحص الفني سينتهي بعد ${diff} أيام`, key: `tech-${vehicle.technical.end}` });
-            } else if (diff < 0) {
-                alerts.push({ text: `🔴 الفحص الفني منتهي الصلاحية`, key: `tech-expired` });
-            }
-        }
-
-        // رخصة السياقة
-        if (vehicle.license && vehicle.license.expiry) {
-            const today = new Date();
-            const end = new Date(vehicle.license.expiry);
-            const diff = Math.ceil((end - today) / (1000*60*60*24));
-            if (diff < 5 && diff >= 0) {
-                alerts.push({ text: `⚠️ رخصة السياقة ستنتهي بعد ${diff} أيام`, key: `license-${vehicle.license.expiry}` });
-            } else if (diff < 0) {
-                alerts.push({ text: `🔴 رخصة السياقة منتهية الصلاحية`, key: `license-expired` });
-            }
-        }
-
-        // تصفية التنبيهات المخفية
-        const filteredAlerts = alerts.filter(a => !hiddenAlerts.includes(a.key));
-
-        if (filteredAlerts.length === 0) {
-            container.innerHTML = '<p style="text-align: center; padding: 20px;">لا توجد تنبيهات.</p>';
+        if (alerts.length === 0) {
+            container.innerHTML = '<p style="text-align: center; padding: 30px;">✅ لا توجد تنبيهات حالياً. كل شيء على ما يرام.</p>';
         } else {
             let html = '';
-            filteredAlerts.forEach((a, idx) => {
+            alerts.forEach((a, idx) => {
                 html += `
                     <div class="notification-item">
                         <span>${a.text}</span>
-                        <button class="btn btn-warning btn-sm" onclick="dismissAlert('${a.key}')">تجاهل</button>
+                        <button class="btn btn-warning btn-sm" onclick="dismissAlert('${a.key}')"><i class="fas fa-check"></i> تم</button>
                     </div>
                 `;
             });
@@ -957,13 +1004,14 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
-    // دالة لتجاهل تنبيه (إضافته إلى hiddenAlerts)
     window.dismissAlert = (key) => {
-        hiddenAlerts.push(key);
-        loadNotifications(); // إعادة تحميل القائمة بعد التحديث
+        // في التنبيهات الذكية، الضغط على "تم" يعني أن المستخدم أصلح المشكلة
+        // لذلك لا نحتاج لتخزينها، فقط نحدث التنبيهات بناءً على آخر البيانات
+        loadNotifications();
+        showNotification('تم تحديث التنبيهات');
     };
 
-    // ================== تقرير PDF مع دعم العربية (محدث) ==================
+    // ================== تقرير PDF مع دعم العربية ==================
     document.getElementById('generateReportBtn').addEventListener('click', () => {
         try {
             const vehicle = appData.vehicles[currentVehicleId];
@@ -975,7 +1023,6 @@ document.addEventListener('DOMContentLoaded', () => {
             
             const { jsPDF } = window.jspdf;
             
-            // إنشاء مستند PDF مع دعم العربية
             const doc = new jsPDF({
                 orientation: 'portrait',
                 unit: 'mm',
@@ -984,14 +1031,17 @@ document.addEventListener('DOMContentLoaded', () => {
                 floatPrecision: 16
             });
             
-            // دعم اللغة العربية
             doc.setRTL(true);
+            doc.setFont('Arial', 'normal');
             
-            // إضافة محتوى التقرير
-            doc.setFontSize(18);
+            // العنوان
+            doc.setFontSize(20);
+            doc.setTextColor(0, 123, 255);
             doc.text(`تقرير صيانة المركبة`, 10, 15);
             
+            // معلومات السيارة
             doc.setFontSize(12);
+            doc.setTextColor(0, 0, 0);
             doc.text(`المركبة: ${vehicle.make} ${vehicle.model}`, 10, 25);
             doc.text(`رقم التسجيل: ${vehicle.regNumber}`, 10, 32);
             doc.text(`آخر عداد: ${vehicle.odometer} كم`, 10, 39);
@@ -1002,103 +1052,86 @@ document.addEventListener('DOMContentLoaded', () => {
             // قطع الغيار
             if (vehicle.spareParts && vehicle.spareParts.length > 0) {
                 doc.setFontSize(14);
+                doc.setTextColor(0, 123, 255);
                 doc.text('قطع الغيار المستبدلة:', 10, y);
                 y += 7;
                 doc.setFontSize(10);
+                doc.setTextColor(0, 0, 0);
                 
-                vehicle.spareParts.forEach(p => {
+                const latestSpares = vehicle.spareParts.slice(-5); // آخر 5 قطع
+                latestSpares.forEach(p => {
                     doc.text(`• ${p.name} - التاريخ: ${p.date} - العداد: ${p.odo} كم - الصلاحية: ${p.defaultKm} كم`, 15, y);
                     y += 6;
-                    
-                    if (y > 280) {
-                        doc.addPage();
-                        y = 20;
-                    }
+                    if (y > 280) { doc.addPage(); y = 20; }
                 });
                 y += 5;
             }
             
-            // تغييرات الزيت
+            // آخر تغيير زيت
             if (vehicle.oilChanges && vehicle.oilChanges.length > 0) {
-                if (y > 250) {
-                    doc.addPage();
-                    y = 20;
-                }
-                
+                const lastOil = vehicle.oilChanges.sort((a,b) => new Date(b.date) - new Date(a.date))[0];
+                if (y > 260) { doc.addPage(); y = 20; }
                 doc.setFontSize(14);
-                doc.text('تغييرات الزيت:', 10, y);
+                doc.setTextColor(0, 123, 255);
+                doc.text('آخر تغيير زيت:', 10, y);
                 y += 7;
                 doc.setFontSize(10);
-                
-                vehicle.oilChanges.forEach(o => {
-                    doc.text(`• ${o.type} - ${o.brand} - التاريخ: ${o.date} - العداد: ${o.odo} كم`, 15, y);
-                    y += 5;
-                    
-                    if (y > 280) {
-                        doc.addPage();
-                        y = 20;
-                    }
-                });
-                y += 5;
+                doc.setTextColor(0, 0, 0);
+                doc.text(`• ${lastOil.type} - ${lastOil.brand} - التاريخ: ${lastOil.date} - العداد: ${lastOil.odo} كم`, 15, y);
+                y += 7;
             }
             
-            // التأمين
-            if (vehicle.insurance) {
-                if (y > 260) {
-                    doc.addPage();
-                    y = 20;
-                }
-                
+            // التأمين الحالي
+            if (vehicle.insurance && vehicle.insurance.length > 0) {
+                const lastIns = vehicle.insurance.sort((a,b) => new Date(b.start) - new Date(a.start))[0];
+                if (y > 260) { doc.addPage(); y = 20; }
                 doc.setFontSize(14);
-                doc.text('التأمين:', 10, y);
+                doc.setTextColor(0, 123, 255);
+                doc.text('التأمين الحالي:', 10, y);
                 y += 7;
                 doc.setFontSize(10);
-                doc.text(`الشركة: ${vehicle.insurance.company}`, 15, y);
+                doc.setTextColor(0, 0, 0);
+                doc.text(`الشركة: ${lastIns.company} - النوع: ${lastIns.type}`, 15, y);
                 y += 5;
-                doc.text(`النوع: ${vehicle.insurance.type}`, 15, y);
-                y += 5;
-                doc.text(`من: ${vehicle.insurance.start} إلى: ${vehicle.insurance.end}`, 15, y);
+                doc.text(`من: ${lastIns.start} إلى: ${lastIns.end}`, 15, y);
                 y += 7;
             }
             
             // الفحص الفني
-            if (vehicle.technical) {
-                if (y > 260) {
-                    doc.addPage();
-                    y = 20;
-                }
-                
+            if (vehicle.technical && vehicle.technical.length > 0) {
+                const lastTech = vehicle.technical.sort((a,b) => new Date(b.start) - new Date(a.start))[0];
+                if (y > 260) { doc.addPage(); y = 20; }
                 doc.setFontSize(14);
-                doc.text('الفحص الفني:', 10, y);
+                doc.setTextColor(0, 123, 255);
+                doc.text('آخر فحص فني:', 10, y);
                 y += 7;
                 doc.setFontSize(10);
-                doc.text(`من: ${vehicle.technical.start} إلى: ${vehicle.technical.end}`, 15, y);
+                doc.setTextColor(0, 0, 0);
+                doc.text(`من: ${lastTech.start} إلى: ${lastTech.end}`, 15, y);
                 y += 7;
             }
             
             // رخصة السياقة
-            if (vehicle.license) {
-                if (y > 260) {
-                    doc.addPage();
-                    y = 20;
-                }
-                
+            if (vehicle.license && vehicle.license.length > 0) {
+                const lastLic = vehicle.license.sort((a,b) => new Date(b.issue) - new Date(a.issue))[0];
+                if (y > 260) { doc.addPage(); y = 20; }
                 doc.setFontSize(14);
+                doc.setTextColor(0, 123, 255);
                 doc.text('رخصة السياقة:', 10, y);
                 y += 7;
                 doc.setFontSize(10);
-                doc.text(`تاريخ الإصدار: ${vehicle.license.issue}`, 15, y);
+                doc.setTextColor(0, 0, 0);
+                doc.text(`تاريخ الإصدار: ${lastLic.issue}`, 15, y);
                 y += 5;
-                doc.text(`تاريخ الانتهاء: ${vehicle.license.expiry}`, 15, y);
+                doc.text(`تاريخ الانتهاء: ${lastLic.expiry}`, 15, y);
                 y += 7;
             }
             
-            // حفظ الملف
             doc.save(`تقرير_${vehicle.make}_${vehicle.model}.pdf`);
-            showNotification('تم إنشاء التقرير بنجاح');
+            showNotification('✅ تم إنشاء التقرير بنجاح');
             
         } catch (error) {
-            console.error('خطأ في إنشاء PDF:', error);
+            console.error('PDF Error:', error);
             showNotification('حدث خطأ في إنشاء التقرير', true);
         }
     });

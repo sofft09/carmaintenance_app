@@ -3,9 +3,11 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=yes">
-    <title>maintenanc_car - متابعة صيانة السيارة</title>
+    <title>Maintenance_car - متابعة صيانة السيارة</title>
     <!-- Font Awesome -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700;900&display=swap" rel="stylesheet">
     <!-- jsPDF -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <!-- ربط ملف CSS الخارجي -->
@@ -25,37 +27,34 @@
         <div class="header">
             <div class="logo">
                 <i class="fas fa-car"></i>
-                <h1>maintenanc_car</h1>
+                <h1>Maintenance_car</h1>
             </div>
         </div>
 
-        <!-- صفحة تسجيل الدخول مع خلفية -->
-<div id="page-login" class="page active">
-    <div class="login-background" style="background-image: url('CAR.jfif');">
-        <div class="login-overlay">
-            <div class="login-box">
-                <h2>تسجيل الدخول</h2>
-                <div class="form-group">
-                    <label>اسم المستخدم</label>
-                    <input type="text" id="loginUsername" value="admin">
+        <!-- صفحة تسجيل الدخول -->
+        <div id="page-login" class="page active">
+            <div class="login-background" style="background-image: url('CAR.jfif');">
+                <div class="login-overlay">
+                    <div class="login-box">
+                        <h2>تسجيل الدخول</h2>
+                        <div class="form-group">
+                            <label>اسم المستخدم</label>
+                            <input type="text" id="loginUsername" value="admin">
+                        </div>
+                        <div class="form-group">
+                            <label>كلمة المرور</label>
+                            <input type="password" id="loginPassword" value="admin">
+                        </div>
+                        <div class="button-group">
+                            <button class="btn btn-primary" id="loginBtn">دخول</button>
+                            <button class="btn btn-danger" id="logoutBtn" style="display: none;">خروج</button>
+                        </div>
+                        <p class="forgot-link"><a href="#" id="forgotLink">تغيير بيانات الدخول</a></p>
+                    </div>
                 </div>
-                <div class="form-group">
-                    <label>كلمة المرور</label>
-                    <input type="password" id="loginPassword" value="admin">
-                </div>
-                <div style="display: flex; gap: 10px; justify-content: center;">
-                    <button class="btn btn-primary" id="loginBtn">دخول</button>
-                    <button class="btn btn-danger" id="logoutBtn" style="display: none;">خروج</button>
-                </div>
-                <p style="margin-top: 15px; text-align: center;">
-                    <a href="#" id="forgotLink">تغيير بيانات الدخول</a>
-                </p>
             </div>
         </div>
-    </div>
-</div>
 
-        <!-- باقي الصفحات (كما هي مع بعض التعديلات الطفيفة) -->
         <!-- صفحة تغيير كلمة المرور -->
         <div id="page-change-password" class="page">
             <h2>تغيير بيانات الدخول</h2>
@@ -85,7 +84,7 @@
 
         <!-- صفحة المركبات المسجلة -->
         <div id="page-vehicles" class="page">
-            <div style="display: flex; justify-content: space-between; align-items: center;">
+            <div class="page-header">
                 <h2>المركبات المسجلة</h2>
                 <div>
                     <button class="btn btn-primary" id="addVehicleBtn">إضافة مركبة</button>
@@ -149,11 +148,11 @@
 
         <!-- صفحة متابعة صيانة السيارة -->
         <div id="page-service" class="page">
-            <div style="display: flex; justify-content: space-between; align-items: center;">
+            <div class="page-header">
                 <h2 id="serviceVehicleTitle"></h2>
                 <button class="btn btn-secondary" id="backFromServiceToVehicles">رجوع</button>
             </div>
-            <div id="vehicleInfoDisplay" style="background: #e9ecef; padding: 10px; border-radius: 10px; margin: 10px 0;"></div>
+            <div id="vehicleInfoDisplay" class="info-display"></div>
             <div class="service-grid">
                 <button class="service-btn" id="btnSpareParts"><i class="fas fa-tools"></i> قطع الغيار</button>
                 <button class="service-btn" id="btnOilChange"><i class="fas fa-oil-can"></i> تغيير الزيوت</button>
@@ -175,16 +174,16 @@
             </div>
             <div class="form-group">
                 <label>اسم القطعة</label>
-                <input type="text" id="spareName" list="sparePartsList">
+                <input type="text" id="spareName" list="sparePartsList" placeholder="أدخل اسم القطعة">
                 <datalist id="sparePartsList"></datalist>
             </div>
             <div class="form-group">
                 <label>رقم العداد عند التغيير</label>
-                <input type="number" id="spareOdometer">
+                <input type="number" id="spareOdometer" placeholder="مثال: 50000">
             </div>
             <div class="form-group">
-                <label>الرقم الافتراضي للصلاحية (كم)</label>
-                <input type="number" id="spareDefaultKm" value="50000">
+                <label>العمر الافتراضي (كم)</label>
+                <input type="number" id="spareDefaultKm" placeholder="أدخل العمر الافتراضي">
             </div>
             <div class="form-group">
                 <label>صورة القطعة</label>
@@ -225,11 +224,11 @@
             </div>
             <div class="form-group">
                 <label>رقم العداد عند التغيير</label>
-                <input type="number" id="oilOdometer">
+                <input type="number" id="oilOdometer" placeholder="مثال: 30000">
             </div>
             <div class="form-group">
-                <label>الرقم الافتراضي للصلاحية (كم)</label>
-                <input type="number" id="oilDefaultKm" value="10000">
+                <label>العمر الافتراضي (كم)</label>
+                <input type="number" id="oilDefaultKm" placeholder="أدخل العمر الافتراضي">
             </div>
             <div class="form-group">
                 <label>تغيير الفلتر</label>
@@ -284,6 +283,7 @@
             </div>
             <button class="btn btn-primary" id="saveInsuranceBtn">حفظ</button>
             <button class="btn btn-secondary" id="backFromInsurance">رجوع</button>
+            <div id="insuranceTableContainer"></div>
         </div>
 
         <!-- صفحة الحالة التقنية -->
@@ -304,6 +304,7 @@
             </div>
             <button class="btn btn-primary" id="saveTechBtn">حفظ</button>
             <button class="btn btn-secondary" id="backFromTech">رجوع</button>
+            <div id="techTableContainer"></div>
         </div>
 
         <!-- صفحة الوقود -->
@@ -319,11 +320,11 @@
             </div>
             <div class="form-group">
                 <label>رقم العداد</label>
-                <input type="number" id="fuelOdometer">
+                <input type="number" id="fuelOdometer" placeholder="مثال: 45000">
             </div>
             <div class="form-group">
                 <label>ثمن التزويد (دينار)</label>
-                <input type="number" id="fuelCost">
+                <input type="number" id="fuelCost" placeholder="مثال: 10000">
             </div>
             <div class="form-group">
                 <label>سعر اللتر</label>
@@ -335,7 +336,7 @@
             </div>
             <div class="form-group">
                 <label>المحطة</label>
-                <input type="text" id="fuelStation">
+                <input type="text" id="fuelStation" placeholder="اسم المحطة">
             </div>
             <button class="btn btn-primary" id="saveFuelBtn">حفظ</button>
             <button class="btn btn-secondary" id="backFromFuel">رجوع</button>
@@ -360,6 +361,7 @@
             </div>
             <button class="btn btn-primary" id="saveLicenseBtn">حفظ</button>
             <button class="btn btn-secondary" id="backFromLicense">رجوع</button>
+            <div id="licenseTableContainer"></div>
         </div>
 
         <!-- صفحة التنبيهات -->
