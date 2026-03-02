@@ -51,7 +51,8 @@ body {
     font-weight: 900;
 }
 
-/* صفحة تسجيل الدخول */
+/* فقط التعديلات على صفحة تسجيل الدخول، باقي الكود كما هو */
+
 .login-background {
     background-size: cover;
     background-position: center;
@@ -69,35 +70,35 @@ body {
 }
 
 .login-overlay {
-    background: linear-gradient(135deg, rgba(0,0,0,0.8) 0%, rgba(0,123,255,0.7) 100%);
+    background: linear-gradient(135deg, rgba(0,0,0,0.5) 0%, rgba(0,0,0,0.3) 100%);
     min-height: 550px;
     display: flex;
     align-items: center;
     justify-content: center;
-    backdrop-filter: blur(3px);
+    backdrop-filter: blur(2px);
 }
 
 .login-box {
-    background: rgba(255, 255, 255, 0.95);
-    padding: 35px 30px;
-    border-radius: 25px;
-    width: 90%;
-    max-width: 380px;
-    box-shadow: 0 20px 40px rgba(0,0,0,0.3);
+    background: rgba(255, 255, 255, 0.85);
+    padding: 25px 20px;
+    border-radius: 20px;
+    width: 85%;
+    max-width: 320px;
+    box-shadow: 0 15px 30px rgba(0,0,0,0.2);
     transform: translateY(0);
     animation: slideUp 0.8s ease;
 }
 
 @keyframes slideUp {
-    from { transform: translateY(50px); opacity: 0; }
+    from { transform: translateY(30px); opacity: 0; }
     to { transform: translateY(0); opacity: 1; }
 }
 
 .login-box h2 {
     text-align: center;
-    margin-bottom: 30px;
+    margin-bottom: 20px;
     color: #007bff;
-    font-size: 2rem;
+    font-size: 1.8rem;
     font-weight: 700;
     position: relative;
 }
@@ -105,62 +106,63 @@ body {
 .login-box h2:after {
     content: '';
     display: block;
-    width: 60px;
-    height: 3px;
+    width: 50px;
+    height: 2px;
     background: #007bff;
-    margin: 10px auto 0;
+    margin: 8px auto 0;
     border-radius: 2px;
 }
 
 .login-box .form-group {
-    margin-bottom: 20px;
+    margin-bottom: 15px;
 }
 
 .login-box label {
     font-weight: 500;
-    margin-bottom: 5px;
+    margin-bottom: 3px;
     display: block;
-    color: #555;
+    color: #333;
+    font-size: 0.9rem;
 }
 
 .login-box input {
     width: 100%;
-    padding: 12px 15px;
-    border: 2px solid #eee;
-    border-radius: 12px;
-    font-size: 1rem;
+    padding: 8px 12px;
+    border: 1px solid #ddd;
+    border-radius: 10px;
+    font-size: 0.9rem;
     transition: all 0.3s;
+    background: rgba(255,255,255,0.9);
 }
 
 .login-box input:focus {
     border-color: #007bff;
-    box-shadow: 0 0 15px rgba(0,123,255,0.2);
-    transform: scale(1.02);
+    box-shadow: 0 0 8px rgba(0,123,255,0.2);
     outline: none;
 }
 
 .button-group {
     display: flex;
-    gap: 10px;
-    margin: 20px 0 15px;
+    gap: 8px;
+    margin: 15px 0 10px;
 }
 
 .button-group .btn {
     flex: 1;
-    padding: 12px;
-    font-size: 1.1rem;
+    padding: 8px;
+    font-size: 1rem;
     font-weight: 600;
 }
 
 .forgot-link {
     text-align: center;
-    margin-top: 10px;
+    margin-top: 5px;
 }
 
 .forgot-link a {
     color: #007bff;
     text-decoration: none;
-    font-size: 0.9rem;
+    font-size: 0.85rem;
     transition: color 0.3s;
 }
 

@@ -31,7 +31,7 @@
             </div>
         </div>
 
-        <!-- صفحة تسجيل الدخول -->
+        <!-- صفحة تسجيل الدخول (الواجهة الرئيسية) -->
         <div id="page-login" class="page active">
             <div class="login-background" style="background-image: url('CAR.jfif');">
                 <div class="login-overlay">
@@ -103,7 +103,7 @@
             </div>
             <div class="form-group">
                 <label>رقم التسجيل</label>
-                <input type="text" id="vehicleReg" placeholder="مثال: 1234 أ 5">
+                <input type="text" id="vehicleReg" placeholder="مثال: 12345.678.95">
             </div>
             <div class="form-group">
                 <label>نوع المركبة</label>
@@ -165,7 +165,8 @@
             </div>
         </div>
 
-        <!-- صفحة قطع الغيار المستبدلة -->
+        <!-- بقية الصفحات (نفس الكود السابق) -->
+        <!-- صفحة قطع الغيار -->
         <div id="page-spare-parts" class="page">
             <h2>قطع الغيار المستبدلة</h2>
             <div class="form-group">
@@ -179,7 +180,7 @@
             </div>
             <div class="form-group">
                 <label>رقم العداد عند التغيير</label>
-                <input type="number" id="spareOdometer" placeholder="مثال: 50000">
+                <input type="number" id="spareOdometer" placeholder="مثال: 00000">
             </div>
             <div class="form-group">
                 <label>العمر الافتراضي (كم)</label>
@@ -220,6 +221,19 @@
                     <option value="موبيل">موبيل</option>
                     <option value="كاسترول">كاسترول</option>
                     <option value="فالفولين">فالفولين</option>
+                    <option value="Castrol_Edge">Castrol_Edge</option>
+                    <option value="Castrol_Magnatec">Castrol_Magnatec</option>
+                    <option value="Castrol_GTX">Castrol_GTX</option>
+                    <option value="كاسترول">كاسترول</option>
+                    <option value="TotalEnergies">TotalEnergies</option>
+                    <option value="TotalEnergies 7000">TotalEnergies 7000</option>
+                    <option value="TotalEnergiesQuartz">TotalEnergiesQuartz</option>
+                    <option value="TotalEnergies9000">TotalEnergies9000</option>
+                    <option value="Liqui Moly">Liqui Moly</option>
+                    <option value="DOT_3">DOT_3</option>
+                    <option value="DOT_4">DOT_4</option>
+                    <option value="DOT_5">DOT_5</option>
+                    <option value="Castrol Brake Fluid DOT4">Castrol Brake Fluid DOT4</option>
                 </select>
             </div>
             <div class="form-group">
@@ -240,9 +254,17 @@
             <div class="form-group">
                 <label>لزوجة الزيت</label>
                 <select id="oilViscosity">
-                    <option value="5W30">5W30</option>
-                    <option value="10W40">10W40</option>
+                    <option value="0W-20">0W-20</option>
+                    <option value="5W-20">5W-20</option>
+                    <option value="5W-30">5W-30</option>
+                    <option value="10W-30">10W-30</option>
+                    <option value="15W-40">15W-40</option>
                     <option value="20W50">20W50</option>
+                    <option value="75W-80">75W-80</option>
+                    <option value="75W-90">75W-90</option>
+                    <option value="90W">90W</option>
+                    <option value="80W-90">80W-90</option>
+                    <option value="140W">140W</option>
                 </select>
             </div>
             <button class="btn btn-primary" id="saveOilBtn">حفظ</button>
@@ -256,16 +278,38 @@
             <div class="form-group">
                 <label>شركة التأمين</label>
                 <select id="insuranceCompany">
-                    <option value="الخليجية">الخليجية</option>
-                    <option value="المتعاونة">المتعاونة</option>
-                    <option value="الوطنية">الوطنية</option>
+                   <option value="SAA">SAA</option>
+                   <option value="CAAT">CAAT</option>
+                   <option value="CAAR">CAAR</option>
+                   <option value="CIAR">CIAR</option>
+                   <option value="CASH">CASH</option>
+                   <option value="CNMA">CNMA</option>
+                   <option value="Trust Algérie">Trust Algérie</option>
+                   <option value="Salama">Salama</option>
+                   <option value="2A">2A</option>
+                   <option value="GAM">GAM</option>
+                   <option value="AXA">AXA</option>
                 </select>
             </div>
             <div class="form-group">
                 <label>نوع التأمين</label>
                 <select id="insuranceType">
-                    <option value="شامل">شامل</option>
-                    <option value="ضد الغير">ضد الغير</option>
+                    <option value="التأمين الإلزامي">التأمين الإلزامي</option>
+                    <option value="التأمين ضد الغير">التأمين ضد الغير</option>
+                    <option value="تأمين الحريق">تأمين الحريق</option>
+                    <option value="تأمين السرقة">تأمين السرقة</option>
+                    <option value="تأمين كسر الزجاج">تأمين كسر الزجاج</option>
+                    <option value="التأمين ضد الاصطدام">التأمين ضد الاصطدام</option>
+                    <option value="التأمين الشامل ضد جميع الأخطار">التأمين الشامل ضد جميع الأخطار</option>
+                    <option value="تأمين المساعدة على الطريق">تأمين المساعدة على الطريق</option>
+                    <option value="تأمين حماية السائق">تأمين حماية السائق</option>
+                    <option value="تأمين حماية الركاب">تأمين حماية الركاب</option>
+                    <option value="تأمين الحماية العائلية والوفاة">تأمين الحماية العائلية والوفاة</option>
+                    <option value="تأمين البضائع للشاحنات">تأمين البضائع للشاحنات</option>
+                    <option value="تأمين المساعدة القانونية">تأمين المساعدة القانونية</option>
+                    <option value="تأمين أعمال التخريب">تأمين أعمال التخريب</option>
+                    <option value="تأمين الكوارث الطبيعية">تأمين الكوارث الطبيعية</option>
+                    <option value="تأمين فقدان رخصة السياقة">تأمين فقدان رخصة السياقة</option>
                 </select>
             </div>
             <div class="form-group">

@@ -37,6 +37,7 @@ function loadData() {
             }
         } catch (e) {}
     } else {
+        // تأكيد أن الصفحة النشطة هي تسجيل الدخول
         showPage('login');
     }
 }
@@ -75,8 +76,8 @@ function updateModels() {
         'نيسان': ['تيدا', 'سنترا', 'باترول'],
         'شيفرولي': ['أفيو', 'سايل', 'سبارك'],
         'مرسيدس': ['C-Class', 'E-Class'],
-        'فولزفاغن': ['باسات', 'غولف'],
-        'سيتروان': ['سي-إليزيه', 'بيرلينغو'],
+        'فولزفاغن': ['باسات', 'غولف', 'بولو'],
+        'سيتروان': ['سي-إليزيه', 'بيرلينغو','برثنار'],
         'داسيا': ['لوجان', 'سانديرو', 'داستر']
     };
     if (models[make]) {
@@ -197,7 +198,7 @@ function generateAlerts(vehicle) {
         const left = p.defaultKm - used;
         if (left < 50000 && left > 0) {
             alerts.push({ 
-                text: `⚠️ قطعة ${p.name} تبقى لها ${left} كم (أقل من 50000 كم)`,
+                text: `⚠️ قطعة ${p.name} تبقى لها ${left} كم (أقل من 00 كم)`,
                 type: 'spare',
                 key: `spare-${p.name}`
             });
@@ -1012,44 +1013,45 @@ document.addEventListener('DOMContentLoaded', () => {
     };
 
     // ================== تقرير PDF مع دعم العربية ==================
-    document.getElementById('generateReportBtn').addEventListener('click', () => {
+    document.getElementById('generateReportBtn').addEventListener('click', function() {
         try {
-            const vehicle = appData.vehicles[currentVehicleId];
-            
-            if (!vehicle) {
-                showNotification('لا توجد مركبة محددة', true);
+            // التحقق من وجود مكتبة jsPDF
+            if (typeof window.jspdf === 'undefined') {
+                showNotification('مكتبة PDF لم يتم تحميلها، حاول مرة أخرى', true);
                 return;
             }
             
+            const vehicle = appData.vehicles[currentVehicleId];
+            if (!vehicle) {
+                showNotification('الرجاء اختيار مركبة أولاً', true);
+                return;
+            }
+
             const { jsPDF } = window.jspdf;
-            
             const doc = new jsPDF({
                 orientation: 'portrait',
                 unit: 'mm',
-                format: 'a4',
-                putOnlyUsedFonts: true,
-                floatPrecision: 16
+                format: 'a4'
             });
-            
+
+            // تفعيل الكتابة من اليمين لليسار
             doc.setRTL(true);
-            doc.setFont('Arial', 'normal');
             
-            // العنوان
+            // إضافة محتوى التقرير
             doc.setFontSize(20);
             doc.setTextColor(0, 123, 255);
-            doc.text(`تقرير صيانة المركبة`, 10, 15);
-            
-            // معلومات السيارة
+            doc.text('تقرير صيانة المركبة', 10, 15);
+
             doc.setFontSize(12);
             doc.setTextColor(0, 0, 0);
             doc.text(`المركبة: ${vehicle.make} ${vehicle.model}`, 10, 25);
             doc.text(`رقم التسجيل: ${vehicle.regNumber}`, 10, 32);
             doc.text(`آخر عداد: ${vehicle.odometer} كم`, 10, 39);
             doc.text(`نوع الوقود: ${vehicle.fuel}`, 10, 46);
-            
+
             let y = 55;
-            
-            // قطع الغيار
+
+            // قطع الغيار (آخر 5)
             if (vehicle.spareParts && vehicle.spareParts.length > 0) {
                 doc.setFontSize(14);
                 doc.setTextColor(0, 123, 255);
@@ -1058,18 +1060,18 @@ document.addEventListener('DOMContentLoaded', () => {
                 doc.setFontSize(10);
                 doc.setTextColor(0, 0, 0);
                 
-                const latestSpares = vehicle.spareParts.slice(-5); // آخر 5 قطع
-                latestSpares.forEach(p => {
-                    doc.text(`• ${p.name} - التاريخ: ${p.date} - العداد: ${p.odo} كم - الصلاحية: ${p.defaultKm} كم`, 15, y);
+                const lastSpares = vehicle.spareParts.slice(-5).reverse();
+                lastSpares.forEach(p => {
+                    doc.text(`• ${p.name} - تاريخ: ${p.date} - عداد: ${p.odo} كم`, 15, y);
                     y += 6;
                     if (y > 280) { doc.addPage(); y = 20; }
                 });
                 y += 5;
             }
-            
+
             // آخر تغيير زيت
             if (vehicle.oilChanges && vehicle.oilChanges.length > 0) {
-                const lastOil = vehicle.oilChanges.sort((a,b) => new Date(b.date) - new Date(a.date))[0];
+                const lastOil = vehicle.oilChanges[vehicle.oilChanges.length - 1];
                 if (y > 260) { doc.addPage(); y = 20; }
                 doc.setFontSize(14);
                 doc.setTextColor(0, 123, 255);
@@ -1077,13 +1079,13 @@ document.addEventListener('DOMContentLoaded', () => {
                 y += 7;
                 doc.setFontSize(10);
                 doc.setTextColor(0, 0, 0);
-                doc.text(`• ${lastOil.type} - ${lastOil.brand} - التاريخ: ${lastOil.date} - العداد: ${lastOil.odo} كم`, 15, y);
+                doc.text(`• ${lastOil.type} - ${lastOil.brand} - تاريخ: ${lastOil.date} - عداد: ${lastOil.odo} كم`, 15, y);
                 y += 7;
             }
-            
+
             // التأمين الحالي
             if (vehicle.insurance && vehicle.insurance.length > 0) {
-                const lastIns = vehicle.insurance.sort((a,b) => new Date(b.start) - new Date(a.start))[0];
+                const lastIns = vehicle.insurance[vehicle.insurance.length - 1];
                 if (y > 260) { doc.addPage(); y = 20; }
                 doc.setFontSize(14);
                 doc.setTextColor(0, 123, 255);
@@ -1096,10 +1098,10 @@ document.addEventListener('DOMContentLoaded', () => {
                 doc.text(`من: ${lastIns.start} إلى: ${lastIns.end}`, 15, y);
                 y += 7;
             }
-            
+
             // الفحص الفني
             if (vehicle.technical && vehicle.technical.length > 0) {
-                const lastTech = vehicle.technical.sort((a,b) => new Date(b.start) - new Date(a.start))[0];
+                const lastTech = vehicle.technical[vehicle.technical.length - 1];
                 if (y > 260) { doc.addPage(); y = 20; }
                 doc.setFontSize(14);
                 doc.setTextColor(0, 123, 255);
@@ -1110,10 +1112,10 @@ document.addEventListener('DOMContentLoaded', () => {
                 doc.text(`من: ${lastTech.start} إلى: ${lastTech.end}`, 15, y);
                 y += 7;
             }
-            
+
             // رخصة السياقة
             if (vehicle.license && vehicle.license.length > 0) {
-                const lastLic = vehicle.license.sort((a,b) => new Date(b.issue) - new Date(a.issue))[0];
+                const lastLic = vehicle.license[vehicle.license.length - 1];
                 if (y > 260) { doc.addPage(); y = 20; }
                 doc.setFontSize(14);
                 doc.setTextColor(0, 123, 255);
@@ -1126,13 +1128,14 @@ document.addEventListener('DOMContentLoaded', () => {
                 doc.text(`تاريخ الانتهاء: ${lastLic.expiry}`, 15, y);
                 y += 7;
             }
-            
+
+            // حفظ الملف
             doc.save(`تقرير_${vehicle.make}_${vehicle.model}.pdf`);
-            showNotification('✅ تم إنشاء التقرير بنجاح');
-            
+            showNotification('تم إنشاء التقرير بنجاح');
+
         } catch (error) {
             console.error('PDF Error:', error);
-            showNotification('حدث خطأ في إنشاء التقرير', true);
+            showNotification('حدث خطأ في إنشاء التقرير: ' + error.message, true);
         }
     });
 });
